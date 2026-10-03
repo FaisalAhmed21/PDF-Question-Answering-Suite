@@ -256,6 +256,34 @@ GROQ_API_KEY=your_groq_key_here
 GEMINI_API_KEY=your_gemini_key_here
 ```
 
+#### Qdrant configuration
+
+Qdrant is required for the dense/vector part of retrieval; it is not an unused
+optional setting. During ingestion, chunk embeddings are upserted into the
+`document_chunks` Qdrant collection. During chat, the question embedding is
+searched in that collection and combined with the SQLite-backed BM25 results
+when hybrid retrieval is enabled.
+
+The default configuration uses Qdrant's local on-disk mode, so no separate
+Qdrant server is needed.
+
+To use Qdrant Cloud (or a self-hosted Qdrant server), set `QDRANT_URL`. When
+`QDRANT_URL` is non-empty, it takes precedence over `QDRANT_PATH`, and the
+backend connects to that URL instead of using the local `qdrant_data/`
+directory. Qdrant Cloud also requires the matching API key:
+
+```env
+QDRANT_URL=https://your-cluster-id.region.aws.cloud.qdrant.io
+QDRANT_API_KEY=your_qdrant_api_key
+QDRANT_COLLECTION=document_chunks
+```
+
+`QDRANT_API_KEY` is passed to the Qdrant client only when a URL is configured.
+Keep it in `backend/.env`; do not commit it. If you switch between local and
+remote Qdrant, the vectors are stored in different places, so documents must
+be uploaded/re-ingested in the selected store.
+
+
 Start the API:
 
 ```powershell
