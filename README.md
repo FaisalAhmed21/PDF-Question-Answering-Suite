@@ -2,8 +2,8 @@
 
 A pair of NLP systems that let you upload a PDF, ask natural-language questions, and receive answers that are **strictly grounded in the document**, with a clear refusal whenever the PDF does not contain the answer. The repository provides the same capability through two different architectures:
 
-- a full-stack **Retrieval-Augmented Generation (RAG)** web application, where an LLM writes the answer, with page citations and in-viewer highlighting of the exact supporting lines; and
-- a standalone **Transformer-Based Extractive QA** notebook, which needs no LLM or API keys and answers by selecting the exact text from the PDF.
+- A full-stack **Retrieval-Augmented Generation (RAG)** web application, where an LLM writes the answer, with page citations and in-viewer highlighting of the exact supporting lines; and
+- A standalone **Transformer-Based Extractive QA** notebook, which needs no LLM or API keys and answers by selecting the exact text from the PDF.
 
 > **Repository at a glance**
 >
