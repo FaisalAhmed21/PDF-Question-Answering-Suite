@@ -2,8 +2,6 @@
 
 An end-to-end **Retrieval-Augmented Generation (RAG)** application that lets you upload PDF documents, ask natural-language questions, and get answers that are **strictly grounded in the PDF content** — with page citations and in-viewer highlighting of the exact supporting lines.
 
-Repository: [FaisalAhmed21/RAG-Powered-PDF-QnA-Assistant](https://github.com/FaisalAhmed21/RAG-Powered-PDF-QnA-Assistant)
-
 ---
 
 ## What this project does
