@@ -1,12 +1,25 @@
-# RAG-Powered PDF Q&A Assistant
+# Grounded PDF Question Answering Suite: RAG Assistant and Transformer-Based Extractive QA
 
-An end-to-end **Retrieval-Augmented Generation (RAG)** application that lets you upload PDF documents, ask natural-language questions, and get answers that are **strictly grounded in the PDF content** — with page citations and in-viewer highlighting of the exact supporting lines.
+A pair of NLP systems that let you upload a PDF, ask natural-language questions, and receive answers that are **strictly grounded in the document**, with a clear refusal whenever the PDF does not contain the answer. The repository provides the same capability through two different architectures:
+
+- a full-stack **Retrieval-Augmented Generation (RAG)** web application, where an LLM writes the answer, with page citations and in-viewer highlighting of the exact supporting lines; and
+- a standalone **Transformer-Based Extractive QA** notebook, which needs no LLM or API keys and answers by selecting the exact text from the PDF.
+
+> **Repository at a glance**
+>
+> | | Solution | Where | Approach | Needs an LLM / API key? |
+> |---|----------|-------|----------|--------------------------|
+> | 1 | **RAG-Powered PDF Q&A Assistant** (web app) | `backend/` + `frontend/` | Retrieval-Augmented Generation | Yes (Groq and/or Gemini) |
+> | 2 | **Transformer-Based PDF Question Answering System** (notebook) | `Transformer_Based_PDF_Question_Answering_System.ipynb` | Retrieve-and-read *extractive* QA | **No** |
+>
+> Solution 1 is documented throughout this README. Solution 2 has its own section:
+> [Companion Notebook: Transformer-Based PDF Question Answering System](#companion-notebook-transformer-based-pdf-question-answering-system).
 
 ---
 
-## What this project does
+## Solution 1: What the RAG web app does
 
-Typical “chat with PDF” demos often invent facts when the document does not contain the answer. This project is built around the opposite goal:
+Typical “chat with PDF” demos often invent facts when the document does not contain the answer. The RAG web app is built around the opposite goal:
 
 1. **Ingest** a PDF into searchable chunks (parse → chunk → enrich → embed → store).
 2. **Retrieve** the most relevant chunks for a user question (hybrid dense + BM25 search, then rerank).
@@ -170,6 +183,7 @@ User question
 ```
 NLP Assignment/
 ├── README.md
+├── Transformer_Based_PDF_Question_Answering_System.ipynb   # standalone notebook: extractive QA, no LLM / no API keys
 ├── .gitignore
 ├── backend/
 │   ├── .env.example          # copy → .env and fill keys (never commit .env)
@@ -405,7 +419,168 @@ SSE events for streaming answers:
 
 ---
 
-## Troubleshooting
+## Companion Notebook: Transformer-Based PDF Question Answering System
+
+**File:** `Transformer_Based_PDF_Question_Answering_System.ipynb` (repository root)
+
+A single, self-contained Jupyter / Google Colab notebook that solves the same core problem as the web app (*answer a question from a PDF, and clearly say so when the PDF does not contain the answer*) using a classic NLP architecture instead of a generative LLM. Running the notebook gives you an upload button; after the PDF is processed it asks for your question and answers **only** from the document. If the answer is not supported by the PDF, it replies:
+
+> *I don't have proper context to answer that question.*
+
+### Why this notebook exists and why it matters
+
+| Reason | Explanation |
+|--------|-------------|
+| **Shows the NLP fundamentals explicitly** | Text extraction and cleaning, sentence segmentation, sentence embeddings, semantic similarity search, tokenization, transformer span prediction, and SQuAD 2.0-style *unanswerable-question* detection are all visible, readable code. In the web app most of this is delegated to libraries and an LLM. |
+| **Zero infrastructure** | One file. No FastAPI, Next.js, SQLite or Qdrant, no `.env`, no API keys. It runs in a free Colab session or any local Jupyter in a few minutes, so anyone can reproduce and verify it. |
+| **Cannot hallucinate by construction** | The model never writes new text. It *selects* a span or sentence that already exists in the PDF, so every answer is traceable to a page and an evidence snippet. |
+| **Private and free to run** | After the one-time model download nothing leaves your machine/runtime, and there is no API quota, rate limit or cost. |
+| **A non-LLM baseline** | It gives the project an honest baseline to compare against the RAG app: same documents, same questions, two very different architectures. This makes the trade-offs between extractive QA and generative RAG concrete instead of theoretical. |
+| **Explainable output** | Every answer comes with a confidence score, the page number, and the surrounding evidence text. |
+
+### What it does (step by step)
+
+```
+Upload PDF
+   │
+   ▼
+1. Extract text per page                 (pypdf)
+   │
+   ▼
+2. Clean the text                        remove decorative junk such as "$$$$%%%%&&&&" or "(_ ... _)"
+   │
+   ▼
+3. Split into sentences                  keep page numbers; glue tiny fragments; cap very long sentences
+   │
+   ▼
+4. Embed every sentence                  sentence-transformers/all-MiniLM-L6-v2 (normalized vectors)
+   │
+   ▼  ── at question time ──
+5. Embed the question, rank sentences    cosine similarity, keep the top 5
+   │
+   ▼
+6. Relevance gate                        best similarity too low?  → "I don't have proper context"
+   │
+   ▼
+7. Key-word check                        a key word of the question (e.g. "bird") never appears in the PDF?
+   │                                     → "I don't have proper context"
+   ▼
+8. Tier 1 – extractive QA                for each candidate sentence (plus its neighbours on the same page)
+   │                                     run deepset/roberta-base-squad2 and pick the best answer span
+   │                                     confidence = P(real answer) vs. the model's own "no answer" option
+   │                                     confidence >= 0.50 → return the short answer + page + evidence
+   ▼
+9. Tier 2 – sentence fallback            no confident short span, but a clearly matching sentence exists
+   │                                     (typical for "why / for what purpose / how" questions)
+   │                                     → return that sentence (+ the next one) with its page
+   ▼
+10. Otherwise                            "I don't have proper context to answer that question."
+```
+
+**Models used**
+
+| Role | Model | Notes |
+|------|-------|-------|
+| Retrieval (embeddings) | `sentence-transformers/all-MiniLM-L6-v2` | Small BERT-style encoder (about 22M parameters), 384-dimensional vectors |
+| Reader (answer extraction) | `deepset/roberta-base-squad2` | RoBERTa-base fine-tuned on SQuAD 2.0, which includes unanswerable questions (about 125M parameters) |
+
+Both are encoder-only transformers that run locally. Neither is a generative LLM. The reader is loaded with `AutoTokenizer` / `AutoModelForQuestionAnswering` rather than the `"question-answering"` pipeline, so it also works on newer `transformers` releases where that pipeline was removed.
+
+**How the "no proper context" decision is made.** Three independent safeguards must all be passed:
+
+1. **Semantic gate**: the best-matching sentence must be similar enough to the question (`MIN_RETRIEVAL_SIM`).
+2. **Key-word gate**: the question's content words (after removing stop words and generic words such as *purpose*, *important*, *crucial*) must actually occur in the PDF, using light stemming. This is what stops a question such as *"What is the national bird?"* from being answered with *"Royal Bengal Tiger"* when the PDF only mentions a national *animal*. Questions with four or more key words may miss one.
+3. **Confidence gate**: the reader must prefer a real span over its own "no answer" option (`MIN_ANSWER_SCORE`), or a sentence must be clearly relevant (`MIN_SENTENCE_SIM`) for the fallback.
+
+### How to run it
+
+1. Open the notebook in **Google Colab** (recommended) or a local **Jupyter / VS Code** environment.
+2. Run all cells from top to bottom (Colab: *Runtime → Run all*). The first run installs packages and downloads the two models (about 500 MB); a GPU is not required.
+3. When the last cell runs, upload your PDF:
+   - **Colab:** a *Choose Files* button appears; afterwards you are prompted `Your question (or type 'exit'):` in a loop.
+   - **Jupyter / VS Code:** an *Upload PDF* button appears; once processing finishes, a question box and an *Ask* button appear.
+4. Ask questions. Each answer shows the extracted answer, a confidence score, the page, and the supporting evidence.
+
+**Installed by the notebook:** `pypdf`, `transformers`, `sentence-transformers`, `torch`, `ipywidgets`.
+
+### Tunable settings
+
+All are defined at the top of the *Core logic* cell.
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `TOP_K` | `5` | Candidate sentences examined per question |
+| `CONTEXT_WINDOW` | `1` | Neighbouring sentences added on each side for the reader |
+| `MIN_RETRIEVAL_SIM` | `0.25` | Best similarity below this means nothing in the PDF relates to the question |
+| `MIN_ANSWER_SCORE` | `0.50` | Reader confidence needed for a short extracted answer |
+| `MIN_SENTENCE_SIM` | `0.40` | Similarity needed to return a whole sentence (fallback) |
+| `MAX_SENT_WORDS` | `60` | Very long sentences are split into pieces of at most this many words |
+
+If the tool refuses valid questions, lower the thresholds slightly. If it answers things it should not, raise `MIN_SENTENCE_SIM` / `MIN_ANSWER_SCORE`.
+
+### Example behaviour
+
+Using the sample test PDF:
+
+| Question | Result |
+|----------|--------|
+| *What is the currency of Bangladesh?* | `Bangladeshi Taka`, high confidence, with the supporting sentence (page 2) |
+| *What is the official language of Bangladesh?* | `Bengali`, high confidence (page 1) |
+| *For what purpose Padma river is crucial for?* | `transportation, agriculture, fishing, and daily life` (page 1) |
+| *What is the national bird of Bangladesh?* | *I don't have proper context to answer that question.* (the PDF mentions a national **animal**, not a bird) |
+
+### How it differs from the main project (the RAG web app)
+
+Both solutions share the same idea: ingest a PDF, retrieve the most relevant passages, check that the document really covers the question, answer from that context, and refuse otherwise. They differ in **how the answer is produced and how much machinery surrounds it**.
+
+| Aspect | RAG web app (`backend/` + `frontend/`) | Notebook (extractive QA) |
+|--------|----------------------------------------|--------------------------|
+| **Paradigm** | Retrieval-**Augmented Generation**: an LLM writes the answer | Retrieve-and-**read**: a reader model *extracts* the answer from the text |
+| **Answer produced by** | Groq / Gemini LLM (context-only prompt) | `roberta-base-squad2` span prediction, or a returned sentence |
+| **Uses an LLM?** | Yes | No (small encoder-only transformers) |
+| **API keys / cost / rate limits** | Required; subject to provider quotas | None |
+| **Parsing** | PyMuPDF / `pymupdf4llm` (headings, tables, optional Docling) | `pypdf` plus junk-symbol cleaning |
+| **Chunking** | Semantic chunks, optional LLM contextual enrichment, Doc2Query | Sentences with page numbers |
+| **Embeddings** | `BAAI/bge-small-en-v1.5` (fastembed) | `all-MiniLM-L6-v2` |
+| **Search** | Dense (Qdrant) + BM25, fused with RRF | Dense (cosine) only |
+| **Reranking** | Cross-encoder reranker | None |
+| **"Is it in the PDF?" check** | Relevance gate (dense similarity + lexical overlap + soft rerank signal) | Similarity gate + key-word gate + confidence gate |
+| **Verification** | Groundedness check and optional second retrieval hop | Reader confidence vs. its "no answer" score |
+| **Multiple documents / chat history** | Yes (sessions, history in SQLite) | One PDF per run, no memory between questions |
+| **Output** | Streamed, fluent answer with `[n]` citations and highlighted PDF viewer | Short extracted answer, confidence, page, evidence text |
+| **Hallucination risk** | Mitigated (grounding prompt and checks) but inherent to generation | None: text is copied from the PDF |
+| **Setup** | Python backend, Node frontend, Qdrant, `.env` | One notebook |
+| **Best suited for** | A product-style experience over many documents | Demonstration, coursework, reproducible baseline, offline use |
+
+**In one sentence:** the web app *reads the retrieved text and writes an answer*, while the notebook *finds the exact words in the retrieved text that answer the question*.
+
+**When to use which**
+
+- Use the **notebook** when you need a quick, reproducible, offline, no-cost demonstration of the NLP pipeline, a non-LLM baseline, or guaranteed answers that are literal quotations from the PDF.
+- Use the **web app** when you need fluent, multi-sentence answers, many documents, chat history, page citations with in-viewer highlighting, or multi-hop questions.
+
+### Limitations of the notebook
+
+- **Extractive only:** answers are short spans or sentences copied from the PDF. It cannot summarise, combine facts from far-apart parts of the document, or rephrase.
+- **Text-based PDFs only:** scanned/image-only PDFs have no extractable text and need OCR first (the notebook reports this).
+- **Strict key-word check:** a question using a word the PDF never uses (for example *people* when the PDF says *population*) is treated as having no context. Rephrase the question or relax `question_terms` / `keywords_supported` in the code.
+- **One document at a time**, English text, and no conversational memory.
+- **No in-viewer highlighting:** evidence is shown as text with the page number.
+
+### Notebook troubleshooting
+
+| Symptom | Things to check |
+|---------|-----------------|
+| `KeyError: Unknown task question-answering` | You are running a notebook version that uses `pipeline("question-answering")` on a new `transformers` release. Use the version in this repository, which loads the model directly. |
+| `Warning: You are sending unauthenticated requests to the HF Hub` | Harmless. Optionally set an `HF_TOKEN` for faster downloads. |
+| "No readable text found in this PDF" | The PDF is probably scanned images; run OCR first. |
+| Valid questions answered with "no proper context" | The question may use a word the PDF never contains (key-word gate), or lower `MIN_RETRIEVAL_SIM` / `MIN_ANSWER_SCORE` / `MIN_SENTENCE_SIM` slightly. |
+| Wrong or loosely related answers | Raise `MIN_ANSWER_SCORE` / `MIN_SENTENCE_SIM`. |
+| First run is slow | Models (about 500 MB) are downloaded once; later runs reuse the cache. |
+
+---
+
+## Troubleshooting (RAG web app)
 
 | Symptom | Things to check |
 |---------|-----------------|
