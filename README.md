@@ -602,3 +602,9 @@ For safety and size, these stay local (see `.gitignore`):
 - `uploads/`, `qdrant_data/`, `ragchatbot.db`
 
 Clone → create `.env` from `.env.example` → install → run. Your PDFs and vectors are created again when you upload documents.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/FaisalAhmed21/PDF-Question-Answering-Suite/blob/main/Transformer_Based_PDF_Question_Answering_System.ipynb)
+
+<p align="center">
+  <img src="assets/demo.gif" alt="Demo: the notebook answers from a PDF and says it lacks context for an out-of-scope question" width="800">
+</p>
