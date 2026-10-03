@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply bg-surface-950 text-surface-100 font-sans antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-300;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-surface-900/60 backdrop-blur-xl border border-surface-700/50 rounded-2xl;
+  }
+
+  .glass-input {
+    @apply bg-surface-800/50 backdrop-blur-sm border border-surface-700/60 rounded-xl
+           text-surface-100 placeholder-surface-300/50 
+           focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/60
+           transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-500 
+           text-white font-medium rounded-xl px-5 py-2.5
+           hover:from-primary-500 hover:to-primary-400
+           active:scale-[0.98] transition-all duration-200
+           shadow-lg shadow-primary-600/25;
+  }
+
+  .btn-ghost {
+    @apply text-surface-300 hover:text-surface-100 
+           hover:bg-surface-700/50 rounded-xl px-4 py-2
+           transition-all duration-200;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .status-pending {
+    @apply status-badge bg-amber-500/15 text-amber-400 border border-amber-500/20;
+  }
+
+  .status-parsing, .status-chunking, .status-embedding {
+    @apply status-badge bg-primary-500/15 text-primary-400 border border-primary-500/20;
+  }
+
+  .status-ready {
+    @apply status-badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .status-failed {
+    @apply status-badge bg-red-500/15 text-red-400 border border-red-500/20;
+  }
+
+  .citation-pill {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 
+           bg-primary-500/15 text-primary-300 text-xs font-medium
+           rounded-lg border border-primary-500/25
+           hover:bg-primary-500/25 hover:text-primary-200
+           cursor-pointer transition-all duration-150;
+  }
+
+  .message-bubble {
+    @apply rounded-2xl px-4 py-3 max-w-[85%] animate-slide-up;
+  }
+
+  .user-bubble {
+    @apply message-bubble bg-primary-600/90 text-white ml-auto;
+  }
+
+  .assistant-bubble {
+    @apply message-bubble glass-panel;
+  }
+
+  .refused-bubble {
+    @apply message-bubble bg-red-500/10 border border-red-500/30 text-red-300;
+  }
+}
+
+/* Markdown content styles */
+.markdown-content h1 { @apply text-xl font-bold mb-3 mt-4; }
+.markdown-content h2 { @apply text-lg font-semibold mb-2 mt-3; }
+.markdown-content h3 { @apply text-base font-semibold mb-2 mt-3; }
+.markdown-content p { @apply mb-2 leading-relaxed; }
+.markdown-content ul { @apply list-disc list-inside mb-2 space-y-1; }
+.markdown-content ol { @apply list-decimal list-inside mb-2 space-y-1; }
+.markdown-content code {
+  @apply bg-surface-800/80 text-primary-300 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+.markdown-content pre {
+  @apply bg-surface-800/80 rounded-xl p-4 overflow-x-auto mb-3;
+}
+.markdown-content pre code {
+  @apply bg-transparent px-0 py-0;
+}
+.markdown-content blockquote {
+  @apply border-l-4 border-primary-500/50 pl-4 italic text-surface-300;
+}
+.markdown-content table {
+  @apply w-full border-collapse mb-3;
+}
+.markdown-content th {
+  @apply text-left px-3 py-2 bg-surface-800/60 border border-surface-700/50 text-sm font-medium;
+}
+.markdown-content td {
+  @apply px-3 py-2 border border-surface-700/50 text-sm;
+}
+
+/* Upload area */
+.upload-zone {
+  @apply border-2 border-dashed border-surface-700/60 rounded-2xl p-8
+         hover:border-primary-500/50 hover:bg-primary-500/5
+         transition-all duration-300 cursor-pointer
+         flex flex-col items-center justify-center gap-3;
+}
+
+.upload-zone.drag-over {
+  @apply border-primary-500/70 bg-primary-500/10 scale-[1.01];
+}
+
+/* Citation highlight inside react-pdf text layer */
+mark.pdf-cite-mark,
+.react-pdf__Page__textContent mark {
+  background-color: #facc15 !important;
+  color: #111 !important;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Loading shimmer */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}

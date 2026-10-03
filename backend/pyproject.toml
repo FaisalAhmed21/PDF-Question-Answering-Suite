@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-qa-rag"
+version = "1.0.0"
+description = "PDF Question Answering Tool with RAG Pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard]>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+    "sqlalchemy[asyncio]>=2.0.25",
+    "aiosqlite>=0.19.0",
+    "pydantic-settings>=2.1.0",
+    "httpx>=0.26.0",
+    "qdrant-client>=1.7.0",
+    "sse-starlette>=1.8.0",
+    "python-dotenv>=1.0.0",
+    "fastembed>=0.2.0",
+    "pymupdf4llm>=0.0.5",
+    "pymupdf>=1.23.0",
+    "nltk>=3.8.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+docling = ["docling"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
