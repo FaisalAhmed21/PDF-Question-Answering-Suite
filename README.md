@@ -401,9 +401,3 @@ For safety and size, these stay local (see `.gitignore`):
 - `uploads/`, `qdrant_data/`, `ragchatbot.db`
 
 Clone → create `.env` from `.env.example` → install → run. Your PDFs and vectors are created again when you upload documents.
-
----
-
-## License / academic use
-
-Built as an NLP / RAG learning and assignment project: hybrid retrieval, grounded generation, and citation UX on real PDFs. Adapt models and thresholds in `.env` for your documents and provider limits.
